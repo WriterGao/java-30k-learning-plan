@@ -1,3 +1,10 @@
 .DS_Store
 **/.DS_Store
 
+# 书籍资源（版权保护，默认不提交到公开仓库）
+# 如果使用私有仓库，可以注释掉以下行
+Day01/resources/*.pdf
+Day01/resources/*.epub
+Day01/resources/*.mobi
+Day01/resources/*.azw3
+
