@@ -1,0 +1,150 @@
+---
+summary: "Control UI 使用说明（打开页面、认证、聊天与常用功能）"
+title: "Control UI 使用说明"
+---
+
+# Control UI 使用说明
+
+本文说明如何在浏览器里打开并操作 OpenClaw 控制台（Control UI）：如何连接、填 Token、聊天以及常用功能入口。
+
+---
+
+## 一、打开页面
+
+### 1.1 地址
+
+- **本机访问（推荐）**：  
+  **http://127.0.0.1:18789/**  
+  或 **http://localhost:18789/**
+- 若网关改了端口或前缀，以实际配置为准（如 `gateway.controlUi.basePath`）。
+
+### 1.2 带 Token 的链接（首次或未保存 Token 时）
+
+若 CLI 或文档给过「带 token 的 dashboard 链接」，格式类似：
+
+```text
+http://127.0.0.1:18789/#token=你的网关Token
+```
+
+- 用浏览器打开该链接后，Control UI 会从 URL 中读取 token 并保存到本地（localStorage），下次同浏览器访问同一地址可不再带 `#token=...`。
+- **注意**：Token 会出现在地址栏，用完后建议从地址栏删掉 `#token=...` 再分享或截图，避免泄露。
+
+---
+
+## 二、连接与认证
+
+### 2.1 页面能打开但提示「未授权」/ 1008 / token missing
+
+说明网关要求认证，需要提供 **Gateway Token**：
+
+1. 在控制台页面找到 **设置 / Settings**（多为齿轮图标或侧边/顶部菜单）。
+2. 在认证/连接相关输入框中粘贴 **Gateway Token**。
+3. 点击保存/连接，或刷新页面后再次连接。
+
+**Token 从哪里拿：**
+
+- 本机：终端执行 `openclaw config get gateway.auth.token`，或查看启动网关时输出的 token。
+- 若尚未配置：可运行 `openclaw doctor --generate-gateway-token` 生成，再写入配置并重启网关。
+
+### 2.2 提示「pairing required」/ 需要配对
+
+从**新浏览器或新设备**首次连 Control UI 时，网关可能要求**一次性设备配对**（本机 127.0.0.1 通常会自动通过）：
+
+1. 在**运行网关的那台机器**上打开终端。
+2. 查看待配对列表：  
+   `openclaw devices list`
+3. 批准指定设备：  
+   `openclaw devices approve <requestId>`  
+   （将 `<requestId>` 换成列表中看到的 ID）
+
+配对通过后，该浏览器/设备之后无需再次配对（除非你撤销了该设备）。
+
+### 2.3 页面打不开 / 503 / Control UI assets not found
+
+- 表示网关在跑，但**前端静态资源未构建或路径不对**。
+- 在**项目根目录**执行：  
+  `pnpm ui:build`  
+  （首次可先执行 `pnpm ui:install` 安装 UI 依赖）
+- 构建完成后**重启网关**，再刷新浏览器。
+
+若仍 503，检查网关进程的当前工作目录是否在项目根，以及 `dist/control-ui` 下是否有 `index.html` 等文件。
+
+---
+
+## 三、主界面与聊天
+
+### 3.1 聊天区域
+
+- 主界面中央一般为**对话区**：上方是历史消息，底部是输入框。
+- **发送消息**：输入内容后回车或点击发送，消息会通过网关 WebSocket 发给模型，回复以流式形式显示。
+- **停止生成**：  
+  - 点击界面上的 **Stop / 停止** 按钮，或  
+  - 在输入框输入：`/stop`（或 `stop`、`esc`、`abort`、`wait`、`exit`、`interrupt` 等约定关键词）再发送。
+
+### 3.2 斜杠命令（可选）
+
+部分环境支持在聊天里输入 `/` 开头的命令，例如：
+
+- `/status` — 查看状态
+- `/config` — 与配置相关的操作
+- `/debug` — 调试相关（若已开启）
+
+具体以界面提示或文档为准。
+
+---
+
+## 四、设置与常用功能入口
+
+### 4.1 设置（Settings）
+
+- 入口：多为齿轮图标或菜单里的「Settings / 设置」。
+- 常用项：  
+  - **Gateway Token**：粘贴 `gateway.auth.token`，用于 WebSocket 认证。  
+  - 若使用密码认证，此处可能为密码（密码通常不持久保存，仅当前会话）。
+
+### 4.2 其他功能（依版本和界面而定）
+
+Control UI 可能提供以下入口（名称或位置可能略有差异）：
+
+- **Channels（渠道）**：查看/配置 WhatsApp、Telegram、Discord、Slack 等；部分渠道支持 QR 登录。
+- **Sessions（会话）**：会话列表及每会话的思考级别、详细程度等。
+- **Cron**：定时任务列表、添加/执行/启用/禁用。
+- **Skills**：技能状态、启用/禁用、安装、API 密钥等。
+- **Nodes**：已配对节点及能力。
+- **Config**：查看/编辑 `~/.openclaw/openclaw.json`（应用配置可能需重启网关）。
+- **Debug / Logs**：状态、健康、模型快照、事件日志、实时日志等。
+- **Devices**：设备配对与撤销（部分环境下在 CLI 用 `openclaw devices` 更完整）。
+
+操作方式以当前页面上的按钮和说明为准。
+
+---
+
+## 五、从本机快速打开控制台
+
+在**已配置好网关且本机有 openclaw CLI** 的情况下：
+
+```bash
+openclaw dashboard
+```
+
+- 会尝试用当前配置的 token 打开默认浏览器并访问 Control UI 地址；  
+- 若只想要链接不自动打开浏览器，可加：  
+  `openclaw dashboard --no-open`  
+  终端会打印可复制的 URL。
+
+---
+
+## 六、安全与使用建议
+
+- Control UI 是**管理界面**（聊天、配置、执行审批等），不要对公网开放。
+- 推荐仅在 **本机（127.0.0.1）**、**Tailscale Serve** 或 **SSH 隧道** 下使用。
+- Token 会保存在浏览器 localStorage 中，使用他人或公用电脑时，用完后可在设置中清除或使用无痕/隐私模式。
+
+---
+
+## 七、相关文档
+
+- [Control UI](/web/control-ui)（功能与能力说明）
+- [Dashboard](/web/dashboard)（访问与认证）
+- [Devices](/cli/devices)（设备配对与撤销）
+- [Gateway 配置](/gateway/configuration)（`gateway.auth`、`gateway.controlUi` 等）
